@@ -1,0 +1,108 @@
+version: "3.8"
+
+services:
+  ubuntu:
+    build:
+      context: ./ubuntu
+      args:
+        USER_NAME: ${DESKTOP_USER}
+        USER_PASSWORD: ${DESKTOP_PASSWORD}
+        UID: ${UID}
+        GID: ${GID}
+    container_name: ubuntu-desktop
+    env_file: .env
+    ports:
+      - "${UBUNTU_RDP_PORT}:3389"
+    volumes:
+      - ./data/ubuntu/home:/home/${DESKTOP_USER}
+      - ./data/ubuntu/apt-cache:/var/cache/apt
+      - ./data/ubuntu/apt-lists:/var/lib/apt/lists
+    restart: unless-stopped
+
+  debian:
+    build:
+      context: ./debian
+      args:
+        USER_NAME: ${DESKTOP_USER}
+        USER_PASSWORD: ${DESKTOP_PASSWORD}
+        UID: ${UID}
+        GID: ${GID}
+    container_name: debian-desktop
+    env_file: .env
+    ports:
+      - "${DEBIAN_RDP_PORT}:3389"
+    volumes:
+      - ./data/debian/home:/home/${DESKTOP_USER}
+      - ./data/debian/apt-cache:/var/cache/apt
+      - ./data/debian/apt-lists:/var/lib/apt/lists
+    restart: unless-stopped
+
+  fedora:
+    build:
+      context: ./fedora
+      args:
+        USER_NAME: ${DESKTOP_USER}
+        USER_PASSWORD: ${DESKTOP_PASSWORD}
+        UID: ${UID}
+        GID: ${GID}
+    container_name: fedora-desktop
+    env_file: .env
+    ports:
+      - "${FEDORA_RDP_PORT}:3389"
+    volumes:
+      - ./data/fedora/home:/home/${DESKTOP_USER}
+      - ./data/fedora/dnf-cache:/var/cache/dnf
+    restart: unless-stopped
+
+  arch:
+    build:
+      context: ./arch
+      args:
+        USER_NAME: ${DESKTOP_USER}
+        USER_PASSWORD: ${DESKTOP_PASSWORD}
+        UID: ${UID}
+        GID: ${GID}
+    container_name: arch-desktop
+    env_file: .env
+    ports:
+      - "${ARCH_RDP_PORT}:3389"
+    volumes:
+      - ./data/arch/home:/home/${DESKTOP_USER}
+      - ./data/arch/pacman-cache:/var/cache/pacman/pkg
+    restart: unless-stopped
+
+  mint:
+    build:
+      context: ./mint
+      args:
+        USER_NAME: ${DESKTOP_USER}
+        USER_PASSWORD: ${DESKTOP_PASSWORD}
+        UID: ${UID}
+        GID: ${GID}
+    container_name: mint-desktop
+    env_file: .env
+    ports:
+      - "${MINT_RDP_PORT}:3389"
+    volumes:
+      - ./data/mint/home:/home/${DESKTOP_USER}
+      - ./data/mint/apt-cache:/var/cache/apt
+      - ./data/mint/apt-lists:/var/lib/apt/lists
+    restart: unless-stopped
+
+  kali:
+    build:
+      context: ./kali
+      args:
+        USER_NAME: ${DESKTOP_USER}
+        USER_PASSWORD: ${DESKTOP_PASSWORD}
+        UID: ${UID}
+        GID: ${GID}
+    container_name: kali-desktop
+    env_file: .env
+    ports:
+      - "${KALI_RDP_PORT}:3389"
+    volumes:
+      - ./data/kali/home:/home/${DESKTOP_USER}
+      - ./data/kali/apt-cache:/var/cache/apt
+      - ./data/kali/apt-lists:/var/lib/apt/lists
+    restart: unless-stopped
