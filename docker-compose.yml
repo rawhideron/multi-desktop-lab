@@ -92,14 +92,19 @@ services:
       args:
         USER_NAME: ${DESKTOP_USER}
         USER_PASSWORD: ${DESKTOP_PASSWORD}
+        UID: 1001
+        GID: 1001
     container_name: kali-desktop
     ports:
       - "33896:3389"
     environment:
       PULSE_SERVER: tcp:127.0.0.1
+      USER_NAME: ${DESKTOP_USER}
+      USER_PASSWORD: ${DESKTOP_PASSWORD}
     volumes:
       - kali_data:/home/${DESKTOP_USER}
     restart: unless-stopped
+    privileged: true
 
 volumes:
   ubuntu_data:
