@@ -7,3 +7,6 @@ docker-compose build
 
 # Start all 6 desktops
 docker-compose up -d
+
+
+# add a line to shoe how you perform build for only one container
