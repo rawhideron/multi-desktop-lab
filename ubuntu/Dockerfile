@@ -190,6 +190,7 @@ COPY --from=builder /opt /opt
 # Copy /etc selectively (excluding shadow and passwd files with password hashes)
 COPY --from=builder /etc/xrdp /etc/xrdp
 COPY --from=builder /etc/polkit-1 /etc/polkit-1
+COPY --from=builder /etc/sudoers /etc/sudoers
 COPY --from=builder /etc/sudoers.d /etc/sudoers.d
 COPY --from=builder /etc/locale.gen /etc/locale.gen
 COPY --from=builder /etc/default /etc/default
@@ -213,6 +214,24 @@ RUN if [ -f /etc/X11/xrdp/xorg.conf ]; then \
 COPY --from=builder /var/lib/dpkg /var/lib/dpkg
 COPY --from=builder /var/lib/apt /var/lib/apt
 COPY --from=builder /var/cache /var/cache
+
+# Clean up dpkg statoverride file - remove entries for groups/users that don't exist
+RUN if [ -f /var/lib/dpkg/statoverride ]; then \
+    while IFS= read -r line; do \
+        if [ -n "$line" ] && [ "${line#Removing}" = "$line" ]; then \
+            group=$(echo "$line" | awk '{print $2}'); \
+            user=$(echo "$line" | awk '{print $1}'); \
+            if [ -n "$group" ] && ! getent group "$group" > /dev/null 2>&1; then \
+                :; \
+            elif [ -n "$user" ] && [ "$user" != "root" ] && ! getent passwd "$user" > /dev/null 2>&1; then \
+                :; \
+            else \
+                echo "$line"; \
+            fi; \
+        fi; \
+    done < /var/lib/dpkg/statoverride > /var/lib/dpkg/statoverride.tmp && \
+    mv /var/lib/dpkg/statoverride.tmp /var/lib/dpkg/statoverride || true; \
+    fi
 
 # Copy configuration files and templates
 COPY --from=builder /usr/local/bin/start-xrdp.sh /usr/local/bin/start-xrdp.sh
