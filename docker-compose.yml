@@ -14,6 +14,8 @@ services:
       - "33891:3389"
     environment:
       PULSE_SERVER: tcp:127.0.0.1
+      USER_NAME: ${DESKTOP_USER}
+      USER_PASSWORD: ${DESKTOP_PASSWORD}
     volumes:
       - ubuntu_data:/home/${DESKTOP_USER}
     restart: unless-stopped
