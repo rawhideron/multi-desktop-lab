@@ -1,108 +1,108 @@
-version: "3.8"
+version: "3.9"
 
 services:
+
   ubuntu:
     build:
       context: ./ubuntu
+      dockerfile: Dockerfile
       args:
         USER_NAME: ${DESKTOP_USER}
         USER_PASSWORD: ${DESKTOP_PASSWORD}
-        UID: ${UID}
-        GID: ${GID}
     container_name: ubuntu-desktop
-    env_file: .env
     ports:
-      - "${UBUNTU_RDP_PORT}:3389"
+      - "33891:3389"
+    environment:
+      PULSE_SERVER: tcp:127.0.0.1
     volumes:
-      - ./data/ubuntu/home:/home/${DESKTOP_USER}
-      - ./data/ubuntu/apt-cache:/var/cache/apt
-      - ./data/ubuntu/apt-lists:/var/lib/apt/lists
+      - ubuntu_data:/home/${DESKTOP_USER}
     restart: unless-stopped
+    privileged: true
 
   debian:
     build:
       context: ./debian
+      dockerfile: Dockerfile
       args:
         USER_NAME: ${DESKTOP_USER}
         USER_PASSWORD: ${DESKTOP_PASSWORD}
-        UID: ${UID}
-        GID: ${GID}
     container_name: debian-desktop
-    env_file: .env
     ports:
-      - "${DEBIAN_RDP_PORT}:3389"
+      - "33892:3389"
+    environment:
+      PULSE_SERVER: tcp:127.0.0.1
     volumes:
-      - ./data/debian/home:/home/${DESKTOP_USER}
-      - ./data/debian/apt-cache:/var/cache/apt
-      - ./data/debian/apt-lists:/var/lib/apt/lists
+      - debian_data:/home/${DESKTOP_USER}
     restart: unless-stopped
 
   fedora:
     build:
       context: ./fedora
+      dockerfile: Dockerfile
       args:
         USER_NAME: ${DESKTOP_USER}
         USER_PASSWORD: ${DESKTOP_PASSWORD}
-        UID: ${UID}
-        GID: ${GID}
     container_name: fedora-desktop
-    env_file: .env
     ports:
-      - "${FEDORA_RDP_PORT}:3389"
+      - "33893:3389"
+    environment:
+      PULSE_SERVER: tcp:127.0.0.1
     volumes:
-      - ./data/fedora/home:/home/${DESKTOP_USER}
-      - ./data/fedora/dnf-cache:/var/cache/dnf
+      - fedora_data:/home/${DESKTOP_USER}
     restart: unless-stopped
 
   arch:
     build:
       context: ./arch
+      dockerfile: Dockerfile
       args:
         USER_NAME: ${DESKTOP_USER}
         USER_PASSWORD: ${DESKTOP_PASSWORD}
-        UID: ${UID}
-        GID: ${GID}
     container_name: arch-desktop
-    env_file: .env
     ports:
-      - "${ARCH_RDP_PORT}:3389"
+      - "33894:3389"
+    environment:
+      PULSE_SERVER: tcp:127.0.0.1
     volumes:
-      - ./data/arch/home:/home/${DESKTOP_USER}
-      - ./data/arch/pacman-cache:/var/cache/pacman/pkg
+      - arch_data:/home/${DESKTOP_USER}
     restart: unless-stopped
 
   mint:
     build:
       context: ./mint
+      dockerfile: Dockerfile
       args:
         USER_NAME: ${DESKTOP_USER}
         USER_PASSWORD: ${DESKTOP_PASSWORD}
-        UID: ${UID}
-        GID: ${GID}
     container_name: mint-desktop
-    env_file: .env
     ports:
-      - "${MINT_RDP_PORT}:3389"
+      - "33895:3389"
+    environment:
+      PULSE_SERVER: tcp:127.0.0.1
     volumes:
-      - ./data/mint/home:/home/${DESKTOP_USER}
-      - ./data/mint/apt-cache:/var/cache/apt
-      - ./data/mint/apt-lists:/var/lib/apt/lists
+      - mint_data:/home/${DESKTOP_USER}
     restart: unless-stopped
 
   kali:
     build:
       context: ./kali
+      dockerfile: Dockerfile
       args:
         USER_NAME: ${DESKTOP_USER}
         USER_PASSWORD: ${DESKTOP_PASSWORD}
-        UID: ${UID}
-        GID: ${GID}
     container_name: kali-desktop
-    env_file: .env
     ports:
-      - "${KALI_RDP_PORT}:3389"
+      - "33896:3389"
+    environment:
+      PULSE_SERVER: tcp:127.0.0.1
     volumes:
-      - ./data/kali/home:/home/${DESKTOP_USER}
-      - ./data/kali/apt-cache:/var/cache/apt
-      - ./data/kali/apt-lists:/var/lib/apt/lists
+      - kali_data:/home/${DESKTOP_USER}
     restart: unless-stopped
+
+volumes:
+  ubuntu_data:
+  debian_data:
+  fedora_data:
+  arch_data:
+  mint_data:
+  kali_data:
