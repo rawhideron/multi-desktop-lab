@@ -10,7 +10,7 @@ ARG GID=1001
 
 # --- Desktop & XRDP Package Installation ---
 RUN apt-get update && \
-    apt-get install -y kde-plasma-desktop xrdp sudo dbus-x11 locales xterm rxvt-unicode lxterminal && \
+    apt-get install -y kde-plasma-desktop xrdp sudo dbus-x11 locales xterm rxvt-unicode lxterminal xfce4 xfce4-goodies && \
     sed -i 's/^# *en_US.UTF-8/en_US.UTF-8/' /etc/locale.gen && \
     locale-gen en_US.UTF-8 && update-locale LANG=en_US.UTF-8 && \
     rm -rf /var/lib/apt/lists/*
@@ -269,6 +269,8 @@ RUN mkdir -p /var/log/xrdp /var/run/xrdp && \
     chmod 755 /usr/local/bin/start-xrdp.sh && \
     chmod 755 /etc/xrdp/startwm.sh && \
     chmod 755 /tmp/.xsession-template
+
+RUN echo xfce4-session > ~/.xsession && chmod +x ~/.xsession
 
 # Fix /dev/tty0 permissions issue - ensure it's accessible or create workaround
 RUN chmod 666 /dev/tty0 2>/dev/null || true
