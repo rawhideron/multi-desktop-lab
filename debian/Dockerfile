@@ -10,7 +10,7 @@ ARG GID=1001
 
 # --- Desktop & XRDP Package Installation ---
 RUN apt-get update && \
-    apt-get install -y kde-plasma-desktop xrdp sudo dbus-x11 locales && \
+    apt-get install -y kde-plasma-desktop xrdp sudo dbus-x11 locales xterm rxvt-unicode lxterminal && \
     sed -i 's/^# *en_US.UTF-8/en_US.UTF-8/' /etc/locale.gen && \
     locale-gen en_US.UTF-8 && update-locale LANG=en_US.UTF-8 && \
     rm -rf /var/lib/apt/lists/*
@@ -137,8 +137,8 @@ RUN echo '#!/bin/bash' > /usr/local/bin/start-xrdp.sh && \
     echo '	chmod +x /home/$USER_HOME/.xsession' >> /usr/local/bin/start-xrdp.sh && \
     echo 'fi' >> /usr/local/bin/start-xrdp.sh && \
     echo '' >> /usr/local/bin/start-xrdp.sh && \
-    echo 'mkdir -p /var/log/xrdp /var/run/xrdp' >> /usr/local/bin/start-xrdp.sh && \
-    echo 'chmod 755 /var/log/xrdp /var/run/xrdp' >> /usr/local/bin/start-xrdp.sh && \
+    echo 'mkdir -p /var/log/xrdp /var/run/xrdp /var/run/xrdp/sockdir' >> /usr/local/bin/start-xrdp.sh && \
+    echo 'chmod 755 /var/log/xrdp /var/run/xrdp /var/run/xrdp/sockdir' >> /usr/local/bin/start-xrdp.sh && \
     echo '' >> /usr/local/bin/start-xrdp.sh && \
     echo '# Pre-create XDG_RUNTIME_DIR for user (needs to exist before window manager starts)' >> /usr/local/bin/start-xrdp.sh && \
     echo 'if [ -n "$USER_HOME" ] && id "$USER_HOME" &>/dev/null; then' >> /usr/local/bin/start-xrdp.sh && \
@@ -168,9 +168,16 @@ RUN echo '#!/bin/bash' > /usr/local/bin/start-xrdp.sh && \
     echo 'fi' >> /usr/local/bin/start-xrdp.sh && \
     echo '' >> /usr/local/bin/start-xrdp.sh && \
     echo '# Start xrdp-sesman and wait for it to be ready' >> /usr/local/bin/start-xrdp.sh && \
+    echo 'mkdir -p /var/run/xrdp/sockdir' >> /usr/local/bin/start-xrdp.sh && \
+    echo 'chmod 755 /var/run/xrdp/sockdir' >> /usr/local/bin/start-xrdp.sh && \
     echo 'rm -f /var/run/xrdp/xrdp-sesman.pid' >> /usr/local/bin/start-xrdp.sh && \
     echo '/usr/sbin/xrdp-sesman &' >> /usr/local/bin/start-xrdp.sh && \
-    echo 'sleep 2' >> /usr/local/bin/start-xrdp.sh && \
+    echo 'sleep 3' >> /usr/local/bin/start-xrdp.sh && \
+    echo '# Verify sesman socket exists before starting xrdp' >> /usr/local/bin/start-xrdp.sh && \
+    echo 'if [ ! -S /var/run/xrdp/sockdir/sesman.socket ]; then' >> /usr/local/bin/start-xrdp.sh && \
+    echo '	echo "ERROR: sesman socket not found, waiting longer..." >> /var/log/xrdp-sesman.log' >> /usr/local/bin/start-xrdp.sh && \
+    echo '	sleep 2' >> /usr/local/bin/start-xrdp.sh && \
+    echo 'fi' >> /usr/local/bin/start-xrdp.sh && \
     echo '' >> /usr/local/bin/start-xrdp.sh && \
     echo 'exec /usr/sbin/xrdp -nodaemon' >> /usr/local/bin/start-xrdp.sh && \
     chmod +x /usr/local/bin/start-xrdp.sh
