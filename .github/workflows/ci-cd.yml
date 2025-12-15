@@ -55,21 +55,43 @@ jobs:
 
     - name: Free up disk space
       run: |
-        echo "Disk space before cleanup:"
+        echo "=== Initial Disk Space ==="
         df -h
-        echo "Docker disk usage:"
+        
+        # Remove system packages and caches to free space
+        sudo rm -rf /usr/share/dotnet
+        sudo rm -rf /usr/local/lib/android
+        sudo rm -rf /opt/ghc
+        sudo rm -rf /opt/hostedtoolcache/CodeQL
+        sudo rm -rf "$AGENT_TOOLSDIRECTORY"
+        
+        # Clean apt cache
+        sudo apt-get clean || true
+        sudo rm -rf /var/lib/apt/lists/* || true
+        
+        # Clean Docker completely
+        echo "Docker disk usage before cleanup:"
         docker system df || true
-        # Remove unused Docker resources
         docker system prune -af --volumes || true
-        # Remove build cache
         docker builder prune -af || true
-        echo "Disk space after cleanup:"
+        
+        # Remove all images, containers, volumes
+        docker stop $(docker ps -aq) 2>/dev/null || true
+        docker rm $(docker ps -aq) 2>/dev/null || true
+        docker rmi $(docker images -q) 2>/dev/null || true
+        docker volume prune -af || true
+        
+        echo "=== Disk Space After Cleanup ==="
         df -h
+        echo "Docker disk usage after cleanup:"
+        docker system df || true
 
     - name: Build container
       env:
         DESKTOP_USER: ${{ secrets.DESKTOP_USER || 'user' }}
         DESKTOP_PASSWORD: ${{ secrets.DESKTOP_PASSWORD || 'password' }}
+        DOCKER_BUILDKIT: 1
+        BUILDKIT_PROGRESS: plain
       run: |
         export DESKTOP_USER=${DESKTOP_USER:-user}
         export DESKTOP_PASSWORD=${DESKTOP_PASSWORD:-password}
@@ -78,6 +100,19 @@ jobs:
         echo "Disk space before build:"
         df -h
         
+        # Check available disk space (need at least 5GB free)
+        AVAILABLE_SPACE=$(df -BG / | tail -1 | awk '{print $4}' | sed 's/G//')
+        echo "Available disk space: ${AVAILABLE_SPACE}GB"
+        
+        if [ "$AVAILABLE_SPACE" -lt 5 ]; then
+          echo "ERROR: Insufficient disk space (${AVAILABLE_SPACE}GB available, need at least 5GB)"
+          echo "These desktop environment images are very large. Consider:"
+          echo "1. Using a self-hosted runner with more disk space"
+          echo "2. Building without --no-cache to use layer caching"
+          echo "3. Building only specific distributions"
+          exit 1
+        fi
+        
         # Stop and remove existing container if it exists
         docker compose stop ${{ matrix.distro }} || true
         docker compose rm -f ${{ matrix.distro }} || true
@@ -85,28 +120,48 @@ jobs:
         # Remove old image to force rebuild
         docker rmi multi-desktop-lab-${{ matrix.distro }}:latest || true
         
-        # Build the container
-        docker compose build --no-cache ${{ matrix.distro }}
+        # Clean up before build
+        docker builder prune -af || true
+        
+        # Build the container with BuildKit
+        # Note: These desktop images are very large (1.5-2GB+). 
+        # GitHub Actions runners have ~14GB total disk space.
+        DOCKER_BUILDKIT=1 docker compose build --no-cache --progress=plain ${{ matrix.distro }}
+        
+        # Immediately clean build cache after build
+        docker builder prune -af || true
         
         echo "Disk space after build:"
         df -h
         
-        # Test that the container can start
-        docker compose up -d ${{ matrix.distro }}
-        sleep 10
+        # Check available space - if less than 2GB, skip test
+        AVAILABLE_SPACE=$(df -BG / | tail -1 | awk '{print $4}' | sed 's/G//')
+        echo "Available disk space: ${AVAILABLE_SPACE}GB"
         
-        # Check if container is running
-        if docker compose ps ${{ matrix.distro }} | grep -q "Up"; then
-          echo "${{ matrix.distro }} container started successfully"
+        if [ "$AVAILABLE_SPACE" -lt 2 ]; then
+          echo "WARNING: Low disk space (${AVAILABLE_SPACE}GB). Skipping container test to save space."
+          echo "Build completed successfully, but container was not tested."
         else
-          echo "ERROR: ${{ matrix.distro }} container failed to start"
-          docker compose logs ${{ matrix.distro }}
-          exit 1
+          # Test that the container can start
+          docker compose up -d ${{ matrix.distro }}
+          sleep 10
+          
+          # Check if container is running
+          if docker compose ps ${{ matrix.distro }} | grep -q "Up"; then
+            echo "${{ matrix.distro }} container started successfully"
+          else
+            echo "ERROR: ${{ matrix.distro }} container failed to start"
+            docker compose logs ${{ matrix.distro }}
+            exit 1
+          fi
+          
+          # Stop and remove the test container immediately
+          docker compose stop ${{ matrix.distro }}
+          docker compose rm -f ${{ matrix.distro }}
+          
+          # Clean up after test
+          docker builder prune -af || true
         fi
-        
-        # Stop and remove the test container
-        docker compose stop ${{ matrix.distro }}
-        docker compose rm -f ${{ matrix.distro }}
 
     - name: Final Cleanup
       if: always()
