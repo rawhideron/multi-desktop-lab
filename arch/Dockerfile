@@ -9,15 +9,40 @@ ARG GID=1000
 RUN sed -i 's/^#Color/Color/' /etc/pacman.conf && \
     sed -i 's/^#ParallelDownloads/ParallelDownloads/' /etc/pacman.conf
 
+# Install base packages and build tools needed for AUR
 RUN pacman -Syu --noconfirm && \
     pacman -S --noconfirm \
+      base-devel \
+      git \
       gnome \
       gnome-terminal \
       xorg-server \
       xorg-xinit \
-      xrdp \
       sudo && \
     pacman -Scc --noconfirm
+
+# Install yay AUR helper (needs non-root user)
+RUN useradd -m -s /bin/bash builder && \
+    echo "builder ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers && \
+    sudo -u builder bash -c "cd /tmp && \
+      git clone https://aur.archlinux.org/yay.git && \
+      cd yay && \
+      makepkg -si --noconfirm --skipinteg" && \
+    rm -rf /tmp/yay
+
+# Install xrdp from AUR using yay
+RUN sudo -u builder yay -S --noconfirm xrdp --noprovides --skipinteg || \
+    (echo "yay failed, trying manual build" && \
+     cd /tmp && \
+     git clone https://aur.archlinux.org/xrdp.git && \
+     cd xrdp && \
+     sudo -u builder makepkg -si --noconfirm --skipinteg && \
+     cd / && \
+     rm -rf /tmp/xrdp)
+
+# Clean up builder user and sudoers entry
+RUN userdel -r builder 2>/dev/null || true && \
+    sed -i '/^builder/d' /etc/sudoers 2>/dev/null || true
 
 # User / sudo (Arch uses 'wheel')
 RUN groupadd -g ${GID} ${USER_NAME} || true && \

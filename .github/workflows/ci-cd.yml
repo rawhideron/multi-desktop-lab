@@ -147,20 +147,26 @@ jobs:
           sleep 10
           
           # Check if container is running
+          TEST_FAILED=false
           if docker compose ps ${{ matrix.distro }} | grep -q "Up"; then
             echo "${{ matrix.distro }} container started successfully"
           else
             echo "ERROR: ${{ matrix.distro }} container failed to start"
             docker compose logs ${{ matrix.distro }}
-            exit 1
+            TEST_FAILED=true
           fi
           
-          # Stop and remove the test container immediately
-          docker compose stop ${{ matrix.distro }}
-          docker compose rm -f ${{ matrix.distro }}
+          # Always stop and remove the test container (even on failure)
+          docker compose stop ${{ matrix.distro }} || true
+          docker compose rm -f ${{ matrix.distro }} || true
           
           # Clean up after test
           docker builder prune -af || true
+          
+          # Exit with error code if test failed (after cleanup)
+          if [ "$TEST_FAILED" = "true" ]; then
+            exit 1
+          fi
         fi
 
     - name: Final Cleanup
