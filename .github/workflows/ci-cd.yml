@@ -1,0 +1,84 @@
+name: Build Linux Desktop Environments
+
+on:
+  push:
+    branches: [ master, main ]
+  pull_request:
+    branches: [ master, main ]
+  workflow_dispatch:
+    inputs:
+      distro:
+        description: 'Distribution to build (ubuntu, debian, fedora, arch, mint, kali, or all)'
+        required: true
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - ubuntu
+          - debian
+          - fedora
+          - arch
+          - mint
+          - kali
+
+env:
+  DESKTOP_USER: ${DESKTOP_USER:-user}
+  DESKTOP_PASSWORD: ${DESKTOP_PASSWORD:-password}
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Build and test containers
+      run: |
+        # Determine which distributions to build
+        if [ "${{ github.event.inputs.distro }}" == "all" ] || [ -z "${{ github.event.inputs.distro }}" ]; then
+          DISTROS="ubuntu debian fedora arch mint kali"
+        else
+          DISTROS="${{ github.event.inputs.distro }}"
+        fi
+        
+        # Build each distribution
+        for distro in $DISTROS; do
+          echo "Building $distro..."
+          
+          # Stop and remove existing container if it exists
+          docker-compose stop $distro || true
+          docker-compose rm -f $distro || true
+          
+          # Remove old image to force rebuild
+          docker rmi multi-desktop-lab-$distro:latest || true
+          
+          # Build the container
+          docker-compose build --no-cache $distro
+          
+          # Test that the container can start
+          docker-compose up -d $distro
+          sleep 5
+          
+          # Check if container is running
+          if docker-compose ps $distro | grep -q "Up"; then
+            echo "$distro container started successfully"
+          else
+            echo "ERROR: $distro container failed to start"
+            docker-compose logs $distro
+            exit 1
+          fi
+          
+          # Stop the test container
+          docker-compose stop $distro
+        done
+
+    - name: Cleanup
+      if: always()
+      run: |
+        docker-compose down || true
+        docker system prune -f || true
+

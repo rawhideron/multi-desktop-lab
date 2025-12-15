@@ -1,0 +1,145 @@
+stages:
+  - build
+  - test
+
+variables:
+  DESKTOP_USER: "user"
+  DESKTOP_PASSWORD: "password"
+  DOCKER_DRIVER: overlay2
+  DOCKER_TLS_CERTDIR: "/certs"
+
+services:
+  - docker:24-dind
+
+before_script:
+  - docker info
+  - docker-compose --version
+
+.build_template: &build_template
+  stage: build
+  script:
+    - echo "Building $DISTRO container..."
+    # Stop and remove existing container if it exists
+    - docker-compose stop $DISTRO || true
+    - docker-compose rm -f $DISTRO || true
+    # Remove old image to force rebuild
+    - docker rmi multi-desktop-lab-$DISTRO:latest || true
+    # Build the container
+    - docker-compose build --no-cache $DISTRO
+  artifacts:
+    expire_in: 1 hour
+    paths:
+      - docker-compose.yml
+    reports:
+      dotenv: build.env
+
+.test_template: &test_template
+  stage: test
+  script:
+    - echo "Testing $DISTRO container..."
+    # Start the container
+    - docker-compose up -d $DISTRO
+    - sleep 10
+    # Check if container is running
+    - |
+      if docker-compose ps $DISTRO | grep -q "Up"; then
+        echo "$DISTRO container started successfully"
+      else
+        echo "ERROR: $DISTRO container failed to start"
+        docker-compose logs $DISTRO
+        exit 1
+      fi
+    # Stop the test container
+    - docker-compose stop $DISTRO
+  after_script:
+    - docker-compose down || true
+    - docker system prune -f || true
+
+build:ubuntu:
+  <<: *build_template
+  variables:
+    DISTRO: ubuntu
+
+test:ubuntu:
+  <<: *test_template
+  variables:
+    DISTRO: ubuntu
+  needs:
+    - build:ubuntu
+
+build:debian:
+  <<: *build_template
+  variables:
+    DISTRO: debian
+
+test:debian:
+  <<: *test_template
+  variables:
+    DISTRO: debian
+  needs:
+    - build:debian
+
+build:fedora:
+  <<: *build_template
+  variables:
+    DISTRO: fedora
+
+test:fedora:
+  <<: *test_template
+  variables:
+    DISTRO: fedora
+  needs:
+    - build:fedora
+
+build:arch:
+  <<: *build_template
+  variables:
+    DISTRO: arch
+
+test:arch:
+  <<: *test_template
+  variables:
+    DISTRO: arch
+  needs:
+    - build:arch
+
+build:mint:
+  <<: *build_template
+  variables:
+    DISTRO: mint
+
+test:mint:
+  <<: *test_template
+  variables:
+    DISTRO: mint
+  needs:
+    - build:mint
+
+build:kali:
+  <<: *build_template
+  variables:
+    DISTRO: kali
+
+test:kali:
+  <<: *test_template
+  variables:
+    DISTRO: kali
+  needs:
+    - build:kali
+
+# Optional: Build all in parallel
+build:all:
+  stage: build
+  script:
+    - |
+      for distro in ubuntu debian fedora arch mint kali; do
+        echo "Building $distro..."
+        docker-compose stop $distro || true
+        docker-compose rm -f $distro || true
+        docker rmi multi-desktop-lab-$distro:latest || true
+        docker-compose build --no-cache $distro
+      done
+  parallel:
+    matrix:
+      - DISTRO: [ubuntu, debian, fedora, arch, mint, kali]
+
