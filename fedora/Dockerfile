@@ -6,10 +6,21 @@ ARG UID=1000
 ARG GID=1000
 
 # Install GNOME Workstation + XRDP + sudo
-# Fedora uses dnf5 which uses "group install" instead of "groupinstall"
+# dnf5 doesn't support groups, so install GNOME packages individually
 RUN dnf -y update && \
-    dnf -y group install "Workstation" && \
-    dnf -y install xrdp sudo dbus-x11 && \
+    dnf -y install \
+      gnome-shell \
+      gnome-terminal \
+      gnome-session \
+      gnome-session-xsession \
+      gnome-settings-daemon \
+      nautilus \
+      gdm \
+      xorg-x11-server-Xorg \
+      xorg-x11-xinit \
+      xrdp \
+      sudo \
+      dbus-x11 && \
     dnf clean all
 
 # User & sudo (Fedora typically uses 'wheel' for sudoers)
