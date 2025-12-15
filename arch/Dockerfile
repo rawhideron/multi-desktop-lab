@@ -31,14 +31,15 @@ RUN useradd -m -s /bin/bash builder && \
     rm -rf /tmp/yay
 
 # Install xrdp from AUR using yay
-RUN sudo -u builder yay -S --noconfirm xrdp --noprovides --skipinteg || \
+RUN sudo -u builder yay -S --noconfirm xrdp --skipinteg || \
     (echo "yay failed, trying manual build" && \
-     cd /tmp && \
-     git clone https://aur.archlinux.org/xrdp.git && \
-     cd xrdp && \
-     sudo -u builder makepkg -si --noconfirm --skipinteg && \
-     cd / && \
-     rm -rf /tmp/xrdp)
+     mkdir -p /tmp/xrdp-build && \
+     chown builder:builder /tmp/xrdp-build && \
+     sudo -u builder bash -c "cd /tmp/xrdp-build && \
+       git clone https://aur.archlinux.org/xrdp.git && \
+       cd xrdp && \
+       makepkg -si --noconfirm --skipinteg" && \
+     rm -rf /tmp/xrdp-build)
 
 # Clean up builder user and sudoers entry
 RUN userdel -r builder 2>/dev/null || true && \
