@@ -36,6 +36,11 @@ jobs:
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v3
 
+    - name: Verify Docker Compose
+      run: |
+        docker compose version
+        docker compose --help
+
     - name: Build and test containers
       run: |
         # Determine which distributions to build
@@ -50,35 +55,35 @@ jobs:
           echo "Building $distro..."
           
           # Stop and remove existing container if it exists
-          docker-compose stop $distro || true
-          docker-compose rm -f $distro || true
+          docker compose stop $distro || true
+          docker compose rm -f $distro || true
           
           # Remove old image to force rebuild
           docker rmi multi-desktop-lab-$distro:latest || true
           
           # Build the container
-          docker-compose build --no-cache $distro
+          docker compose build --no-cache $distro
           
           # Test that the container can start
-          docker-compose up -d $distro
+          docker compose up -d $distro
           sleep 5
           
           # Check if container is running
-          if docker-compose ps $distro | grep -q "Up"; then
+          if docker compose ps $distro | grep -q "Up"; then
             echo "$distro container started successfully"
           else
             echo "ERROR: $distro container failed to start"
-            docker-compose logs $distro
+            docker compose logs $distro
             exit 1
           fi
           
           # Stop the test container
-          docker-compose stop $distro
+          docker compose stop $distro
         done
 
     - name: Cleanup
       if: always()
       run: |
-        docker-compose down || true
+        docker compose down || true
         docker system prune -f || true
 
