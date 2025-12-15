@@ -21,10 +21,6 @@ on:
           - mint
           - kali
 
-env:
-  DESKTOP_USER: ${DESKTOP_USER:-user}
-  DESKTOP_PASSWORD: ${DESKTOP_PASSWORD:-password}
-
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -42,6 +38,9 @@ jobs:
         docker compose --help
 
     - name: Build and test containers
+      env:
+        DESKTOP_USER: ${{ secrets.DESKTOP_USER || 'user' }}
+        DESKTOP_PASSWORD: ${{ secrets.DESKTOP_PASSWORD || 'password' }}
       run: |
         # Determine which distributions to build
         if [ "${{ github.event.inputs.distro }}" == "all" ] || [ -z "${{ github.event.inputs.distro }}" ]; then
@@ -49,6 +48,10 @@ jobs:
         else
           DISTROS="${{ github.event.inputs.distro }}"
         fi
+        
+        # Export environment variables for docker compose
+        export DESKTOP_USER=${DESKTOP_USER:-user}
+        export DESKTOP_PASSWORD=${DESKTOP_PASSWORD:-password}
         
         # Build each distribution
         for distro in $DISTROS; do
