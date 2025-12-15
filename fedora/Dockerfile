@@ -12,7 +12,6 @@ RUN dnf -y update && \
       gnome-shell \
       gnome-terminal \
       gnome-session \
-      gnome-session-xsession \
       gnome-settings-daemon \
       nautilus \
       gdm \
