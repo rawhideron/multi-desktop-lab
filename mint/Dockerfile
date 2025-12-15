@@ -7,16 +7,16 @@ ARG GID=1000
 
 ENV DEBIAN_FRONTEND=noninteractive
 
-RUN apt-get update && \
-    apt-get install -y \
+RUN apt update && \
+    apt install -y \
       cinnamon-desktop-environment \
       xrdp \
+      xorg \
       sudo \
       dbus-x11 \
-      locales && \
-    sed -i 's/^# *en_US.UTF-8/en_US.UTF-8/' /etc/locale.gen && \
-    locale-gen && \
-    rm -rf /var/lib/apt/lists/*
+      xterm \
+      lxterminal \
+      locales
 
 RUN groupadd -g ${GID} ${USER_NAME} || true && \
     useradd -m -s /bin/bash -u ${UID} -g ${GID} ${USER_NAME} && \
@@ -25,17 +25,36 @@ RUN groupadd -g ${GID} ${USER_NAME} || true && \
     echo "${USER_NAME} ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/90-${USER_NAME} && \
     chmod 440 /etc/sudoers.d/90-${USER_NAME}
 
-# Use Cinnamon session for XRDP
-RUN sed -i.bak 's|^test -x /etc/X11/Xsession && exec /etc/X11/Xsession|cinnamon-session|g' \
-      /etc/xrdp/startwm.sh || true
+RUN mkdir -p /var/run/xrdp /run/xrdp && \
+    chown xrdp:xrdp /var/run/xrdp /run/xrdp
 
-RUN printf '#!/bin/bash\nset -e\n/usr/sbin/xrdp-sesman &\nexec /usr/sbin/xrdp -nodaemon\n' \
-      > /usr/local/bin/start-xrdp.sh && \
-    chmod +x /usr/local/bin/start-xrdp.sh
+# Use Cinnamon session for XRDP
+# RUN sed -i.bak 's|^test -x /etc/X11/Xsession && exec /etc/X11/Xsession|cinnamon-session|g' \
+#       /etc/xrdp/startwm.sh || true
+
+RUN printf '%s\n' \
+    '#!/bin/bash' \
+    'set -e' \
+    'dbus-daemon --system --nofork &' \
+    '/usr/sbin/xrdp-sesman &' \
+    'exec /usr/sbin/xrdp -nodaemon' \
+    > /usr/local/bin/start-xrdp.sh \
+    && chmod +x /usr/local/bin/start-xrdp.sh
+
+RUN printf '%s\n' \
+    '#!/bin/sh' \
+    '. /etc/profile' \
+    'export GNOME_SHELL_SESSION_MODE=cinnamon' \
+    'export XDG_SESSION_DESKTOP=cinnamon' \
+    'export XDG_CURRENT_DESKTOP=cinnamon' \
+    'cinnamon-session' \
+    > /etc/xrdp/startwm.sh \
+    && chmod +x /etc/xrdp/startwm.sh
+
+
 
 EXPOSE 3389
 
-USER ${USER_NAME}
 WORKDIR /home/${USER_NAME}
 
-CMD ["/usr/local/bin/start-xrdp.sh"]
+ENTRYPOINT ["/usr/local/bin/start-xrdp.sh"]

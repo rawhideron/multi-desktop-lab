@@ -1,4 +1,4 @@
-FROM ubuntu:22.04
+FROM ubuntu:24.04
 
 ENV DEBIAN_FRONTEND=noninteractive
 
@@ -8,7 +8,7 @@ ARG UID=1001
 ARG GID=1001
 
 RUN apt-get update && \
-    DEBIAN_FRONTEND=noninteractive apt-get install -y \
+    DEBIAN_FRONTEND=noninteractive apt install -y \
     xfce4 \
     xfce4-goodies \
     xorg \
@@ -17,15 +17,11 @@ RUN apt-get update && \
     x11-xserver-utils \
     xrdp \
     sudo \
-    locales  \
-    locale-gen en_US.UTF-8  \
-    update-locale LANG=en_US.UTF-8 && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/*
+    locales
 
-ENV LANG=en_US.UTF-8 \
-    LANGUAGE=en_US:en \
-    LC_ALL=en_US.UTF-8
+# ENV LANG=en_US.UTF-8 \
+#     LANGUAGE=en_US:en \
+#     LC_ALL=en_US.UTF-8
 
 # Allow xrdp to start Xorg
 RUN sed -i 's/allowed_users=console/allowed_users=anybody/' /etc/X11/Xwrapper.config 2>/dev/null || \
