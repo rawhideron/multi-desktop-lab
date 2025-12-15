@@ -6,10 +6,9 @@ ARG UID=1000
 ARG GID=1000
 
 # Install GNOME Workstation + XRDP + sudo
-# Fedora uses dnf5 which requires the groupinstall plugin
+# Fedora uses dnf5 which uses "group install" instead of "groupinstall"
 RUN dnf -y update && \
-    dnf -y install 'dnf5-command(groupinstall)' && \
-    dnf -y groupinstall "Workstation" && \
+    dnf -y group install "Workstation" && \
     dnf -y install xrdp sudo dbus-x11 && \
     dnf clean all
 
