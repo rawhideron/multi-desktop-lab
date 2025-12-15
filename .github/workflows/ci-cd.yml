@@ -37,6 +37,19 @@ jobs:
         docker compose version
         docker compose --help
 
+    - name: Free up disk space
+      run: |
+        echo "Disk space before cleanup:"
+        df -h
+        echo "Docker disk usage:"
+        docker system df || true
+        # Remove unused Docker resources
+        docker system prune -af --volumes || true
+        # Remove build cache
+        docker builder prune -af || true
+        echo "Disk space after cleanup:"
+        df -h
+
     - name: Build and test containers
       env:
         DESKTOP_USER: ${{ secrets.DESKTOP_USER || 'user' }}
@@ -55,7 +68,9 @@ jobs:
         
         # Build each distribution
         for distro in $DISTROS; do
-          echo "Building $distro..."
+          echo "=== Building $distro ==="
+          echo "Disk space before build:"
+          df -h
           
           # Stop and remove existing container if it exists
           docker compose stop $distro || true
@@ -64,8 +79,18 @@ jobs:
           # Remove old image to force rebuild
           docker rmi multi-desktop-lab-$distro:latest || true
           
+          # Clean up any dangling images and build cache before building
+          docker image prune -f || true
+          docker builder prune -f || true
+          
           # Build the container
           docker compose build --no-cache $distro
+          
+          # Clean up build cache immediately after build
+          docker builder prune -f || true
+          
+          echo "Disk space after build:"
+          df -h
           
           # Test that the container can start
           docker compose up -d $distro
@@ -82,11 +107,23 @@ jobs:
           
           # Stop the test container
           docker compose stop $distro
+          
+          # Clean up after each build to free space for next one
+          docker image prune -f || true
+          docker builder prune -f || true
+          echo "Disk space after cleanup:"
+          df -h
+          echo "=== Finished $distro ==="
         done
 
-    - name: Cleanup
+    - name: Final Cleanup
       if: always()
       run: |
+        echo "Final disk space check:"
+        df -h
         docker compose down || true
-        docker system prune -f || true
+        docker system prune -af --volumes || true
+        docker builder prune -af || true
+        echo "Final disk space:"
+        df -h
 
