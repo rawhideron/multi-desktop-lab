@@ -35,8 +35,9 @@ RUN groupadd -g ${GID} ${USER_NAME} || true && \
     useradd -m -s /bin/bash -u ${UID} -g ${GID} ${USER_NAME} && \
     echo "${USER_NAME}:${USER_PASSWORD}" | passwd --stdin ${USER_NAME} || \
     (echo "${USER_PASSWORD}" | passwd --stdin ${USER_NAME}) && \
-    usermod -aG wheel ${USER_NAME} && \
+    usermod -aG wheel,sudo ${USER_NAME} && \
     echo "%wheel ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/90-wheel && \
+    echo "${USER_NAME} ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers.d/90-wheel && \
     chmod 440 /etc/sudoers.d/90-wheel
 
 # Create xrdp log and run directories
