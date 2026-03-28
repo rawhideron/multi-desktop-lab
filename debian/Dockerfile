@@ -293,5 +293,9 @@ RUN echo xfce4-session > ~/.xsession && chmod +x ~/.xsession
 RUN chmod 666 /dev/tty0 2>/dev/null || true
 
 EXPOSE 3389
+
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+  CMD pgrep -x xrdp > /dev/null || exit 1
+
 WORKDIR /home/${USER_NAME}
 CMD ["/usr/local/bin/start-xrdp.sh"]

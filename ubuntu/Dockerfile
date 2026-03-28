@@ -156,6 +156,9 @@ RUN mkdir -p /var/log/xrdp /var/run/xrdp/sockdir && \
 
 EXPOSE 3389
 
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+  CMD pgrep -x xrdp > /dev/null || exit 1
+
 WORKDIR /home/${USER_NAME}
 
 CMD ["/usr/local/bin/start-xrdp.sh"]

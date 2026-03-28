@@ -259,6 +259,9 @@ RUN chmod +x /usr/local/bin/start-xrdp.sh
 
 EXPOSE 3389
 
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+  CMD pgrep -x xrdp > /dev/null || exit 1
+
 USER ${USER_NAME}
 WORKDIR /home/${USER_NAME}
 

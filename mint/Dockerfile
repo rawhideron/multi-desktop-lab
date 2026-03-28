@@ -73,6 +73,9 @@ RUN printf '%s\n' \
 
 EXPOSE 3389
 
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+  CMD pgrep -x xrdp > /dev/null || exit 1
+
 WORKDIR /home/${USER_NAME}
 
 ENTRYPOINT ["/usr/local/bin/start-xrdp.sh"]
