@@ -1,4 +1,4 @@
-FROM archlinux:latest
+FROM archlinux:base-20250101.0.295906
 
 ARG USER_NAME
 ARG USER_PASSWORD

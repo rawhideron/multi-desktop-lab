@@ -1,4 +1,4 @@
-FROM fedora:latest
+FROM fedora:41
 
 ARG USER_NAME
 ARG USER_PASSWORD

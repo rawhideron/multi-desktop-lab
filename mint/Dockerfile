@@ -1,4 +1,4 @@
-FROM linuxmintd/mint20-amd64
+FROM linuxmintdocker/linux-mint:21.3
 
 ARG USER_NAME
 ARG USER_PASSWORD

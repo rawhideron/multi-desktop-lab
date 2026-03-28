@@ -1,5 +1,5 @@
 # ===== BUILDER STAGE =====
-FROM debian:latest AS builder
+FROM debian:12-slim AS builder
 ENV DEBIAN_FRONTEND=noninteractive
 
 # Build arguments (only used in builder stage)
@@ -183,7 +183,7 @@ RUN echo '#!/bin/bash' > /usr/local/bin/start-xrdp.sh && \
     chmod +x /usr/local/bin/start-xrdp.sh
 
 # ===== FINAL STAGE =====
-FROM debian:latest
+FROM debian:12-slim
 ENV DEBIAN_FRONTEND=noninteractive
 
 # Build arguments for final stage (without password)
