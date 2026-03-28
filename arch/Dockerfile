@@ -19,8 +19,16 @@ RUN pacman -Syu --noconfirm && \
       gnome-terminal \
       xorg-server \
       xorg-xinit \
-      sudo && \
+      sudo \
+      openssl && \
     pacman -Scc --noconfirm
+
+# Generate XRDP SSL certificates (required for xrdp to start)
+RUN openssl req -x509 -nodes -newkey rsa:2048 \
+    -keyout /etc/xrdp/key.pem \
+    -out /etc/xrdp/cert.pem -days 365 \
+    -subj "/C=US/ST=State/L=City/O=Org/CN=xrdp" && \
+    chmod 600 /etc/xrdp/key.pem
 
 # Install yay AUR helper (needs non-root user)
 RUN useradd -m -s /bin/bash builder && \

@@ -19,8 +19,16 @@ RUN dnf -y update && \
       xorg-x11-xinit \
       xrdp \
       sudo \
+      openssl \
       dbus-x11 && \
     dnf clean all
+
+# Generate XRDP SSL certificates (required for xrdp to start)
+RUN openssl req -x509 -nodes -newkey rsa:2048 \
+    -keyout /etc/xrdp/key.pem \
+    -out /etc/xrdp/cert.pem -days 365 \
+    -subj "/C=US/ST=State/L=City/O=Org/CN=xrdp" && \
+    chmod 600 /etc/xrdp/key.pem
 
 # User & sudo (Fedora typically uses 'wheel' for sudoers)
 RUN groupadd -g ${GID} ${USER_NAME} || true && \

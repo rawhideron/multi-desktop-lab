@@ -10,10 +10,17 @@ ARG GID=1001
 
 # --- Desktop & XRDP Package Installation ---
 RUN apt-get update && \
-    apt-get install -y kde-plasma-desktop xrdp sudo dbus-x11 locales xterm rxvt-unicode lxterminal xfce4 xfce4-goodies && \
+    apt-get install -y kde-plasma-desktop xrdp sudo dbus-x11 locales xterm rxvt-unicode lxterminal xfce4 xfce4-goodies openssl && \
     sed -i 's/^# *en_US.UTF-8/en_US.UTF-8/' /etc/locale.gen && \
     locale-gen en_US.UTF-8 && update-locale LANG=en_US.UTF-8 && \
     rm -rf /var/lib/apt/lists/*
+
+# Generate XRDP SSL certificates (required for xrdp to start)
+RUN openssl req -x509 -nodes -newkey rsa:2048 \
+    -keyout /etc/xrdp/key.pem \
+    -out /etc/xrdp/cert.pem -days 365 \
+    -subj "/C=US/ST=State/L=City/O=Org/CN=xrdp" && \
+    chmod 600 /etc/xrdp/key.pem
 
 # Create .xsession template file
 RUN printf '#!/bin/sh\n\
