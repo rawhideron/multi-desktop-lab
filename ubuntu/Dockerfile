@@ -17,7 +17,8 @@ RUN apt-get update && \
     x11-xserver-utils \
     xrdp \
     sudo \
-    locales
+    locales && \
+    rm -rf /var/lib/apt/lists/*
 
 # ENV LANG=en_US.UTF-8 \
 #     LANGUAGE=en_US:en \

@@ -16,7 +16,8 @@ RUN apt update && \
       dbus-x11 \
       xterm \
       lxterminal \
-      locales
+      locales && \
+    rm -rf /var/lib/apt/lists/*
 
 RUN groupadd -g ${GID} ${USER_NAME} || true && \
     useradd -m -s /bin/bash -u ${UID} -g ${GID} ${USER_NAME} && \
