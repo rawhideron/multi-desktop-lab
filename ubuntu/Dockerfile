@@ -89,6 +89,16 @@ exec xfce4-session\n' > /etc/xrdp/reconnectwm.sh && \
 # Make sure xrdp can access the SSL certs
 RUN adduser xrdp ssl-cert || true
 
+# Configure XRDP logging level and fuse mount directory for session channels
+RUN if [ -f /etc/xrdp/xrdp.ini ]; then \
+    sed -i 's/^LogLevel=.*/LogLevel=DEBUG/' /etc/xrdp/xrdp.ini 2>/dev/null || true; \
+    grep -q "^LogLevel=" /etc/xrdp/xrdp.ini || printf '\n[Logging]\nLogLevel=DEBUG\n' >> /etc/xrdp/xrdp.ini; \
+    fi && \
+    if [ -f /etc/xrdp/sesman.ini ]; then \
+    sed -i 's|^FuseMountName=.*|FuseMountName=/tmp/.xrdp|' /etc/xrdp/sesman.ini 2>/dev/null || true; \
+    grep -q "^FuseMountName=" /etc/xrdp/sesman.ini || echo "FuseMountName=/tmp/.xrdp" >> /etc/xrdp/sesman.ini; \
+    fi
+
 # Create startup script - FIXED: run sesman in background, xrdp in foreground
 RUN printf '#!/bin/bash\n\
 set -e\n\

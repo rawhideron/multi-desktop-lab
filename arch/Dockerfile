@@ -97,7 +97,7 @@ ini_version=1
 
 [logging]
 LogFile=xrdp.log
-LogLevel=INFO
+LogLevel=DEBUG
 EnableSyslog=true
 SyslogLevel=INFO
 #EnableSyslogLevel=DEBUG
@@ -131,6 +131,8 @@ RUN mkdir -p /etc/xrdp && \
       sed -i 's/^DefaultWindowManager=.*/DefaultWindowManager=startwm.sh/' /etc/xrdp/sesman.ini 2>/dev/null || true; \
       sed -i 's/^UserWindowManager=.*/UserWindowManager=false/' /etc/xrdp/sesman.ini 2>/dev/null || true; \
       sed -i 's/^RestartWindowManager=.*/RestartWindowManager=false/' /etc/xrdp/sesman.ini 2>/dev/null || true; \
+      sed -i 's|^FuseMountName=.*|FuseMountName=/tmp/.xrdp|' /etc/xrdp/sesman.ini 2>/dev/null || true; \
+      grep -q "^FuseMountName=" /etc/xrdp/sesman.ini || echo "FuseMountName=/tmp/.xrdp" >> /etc/xrdp/sesman.ini; \
     fi
 
 # XRDP with gnome-session - create proper startwm.sh

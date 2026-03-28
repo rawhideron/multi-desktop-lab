@@ -22,6 +22,16 @@ RUN openssl req -x509 -nodes -newkey rsa:2048 \
     -subj "/C=US/ST=State/L=City/O=Org/CN=xrdp" && \
     chmod 600 /etc/xrdp/key.pem
 
+# Configure XRDP logging level and fuse mount directory for session channels
+RUN if [ -f /etc/xrdp/xrdp.ini ]; then \
+    sed -i 's/^LogLevel=.*/LogLevel=DEBUG/' /etc/xrdp/xrdp.ini 2>/dev/null || true; \
+    grep -q "^LogLevel=" /etc/xrdp/xrdp.ini || printf '\n[Logging]\nLogLevel=DEBUG\n' >> /etc/xrdp/xrdp.ini; \
+    fi && \
+    if [ -f /etc/xrdp/sesman.ini ]; then \
+    sed -i 's|^FuseMountName=.*|FuseMountName=/tmp/.xrdp|' /etc/xrdp/sesman.ini 2>/dev/null || true; \
+    grep -q "^FuseMountName=" /etc/xrdp/sesman.ini || echo "FuseMountName=/tmp/.xrdp" >> /etc/xrdp/sesman.ini; \
+    fi
+
 # Create .xsession template file
 RUN printf '#!/bin/sh\n\
 export XDG_SESSION_TYPE=x11\n\
