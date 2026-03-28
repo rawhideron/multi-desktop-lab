@@ -55,6 +55,13 @@ set -e\n\
 sudo mkdir -p /var/log/xrdp /var/run/xrdp /run/xrdp /var/run/xrdp/sockdir\n\
 sudo chmod 755 /var/log/xrdp /var/run/xrdp /run/xrdp /var/run/xrdp/sockdir\n\
 sudo chown -R xrdp:xrdp /var/log/xrdp /var/run/xrdp /run/xrdp /var/run/xrdp/sockdir 2>/dev/null || true\n\
+# Start system DBUS if not already running (required by desktop environments)\n\
+if [ ! -S /run/dbus/system_bus_socket ]; then\n\
+    sudo mkdir -p /var/run/dbus /var/lib/dbus\n\
+    sudo dbus-uuidgen --ensure 2>/dev/null || true\n\
+    sudo dbus-daemon --system --fork --nopidfile 2>/dev/null || true\n\
+    sleep 1\n\
+fi\n\
 # Start xrdp-sesman with sudo\n\
 sudo /usr/sbin/xrdp-sesman &\n\
 # Wait a moment for sesman to start\n\

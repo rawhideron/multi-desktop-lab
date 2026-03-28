@@ -198,6 +198,14 @@ sudo chown ${CURRENT_UID}:${CURRENT_UID} /var/run/xrdp/${CURRENT_UID} 2>/dev/nul
 # Clean up any stale pid files
 sudo rm -f /var/run/xrdp/xrdp-sesman.pid /var/run/xrdp/xrdp.pid 2>/dev/null || true
 
+# Start system DBUS if not already running (required by GNOME)
+if [ ! -S /run/dbus/system_bus_socket ]; then
+    sudo mkdir -p /var/run/dbus /var/lib/dbus
+    sudo dbus-uuidgen --ensure 2>/dev/null || true
+    sudo dbus-daemon --system --fork --nopidfile 2>/dev/null || true
+    sleep 1
+fi
+
 # Start xrdp-sesman with sudo
 echo "Starting xrdp-sesman..."
 sudo /usr/sbin/xrdp-sesman &
