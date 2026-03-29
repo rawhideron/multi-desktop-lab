@@ -15,7 +15,8 @@ RUN apt-get update && \
       xrdp \
       sudo \
       dbus-x11 \
-      locales && \
+      locales \
+      openssl && \
     sed -i 's/^# *en_US.UTF-8/en_US.UTF-8/' /etc/locale.gen && \
     locale-gen en_US.UTF-8 && update-locale LANG=en_US.UTF-8 && \
     rm -rf /var/lib/apt/lists/*
@@ -106,6 +107,16 @@ sleep 1\n\
 # Start Xfce session directly (more reliable than startxfce4 for XRDP)\n\
 exec xfce4-session\n' > /etc/xrdp/startwm.sh && \
     chmod +x /etc/xrdp/startwm.sh
+
+# Generate SSL certificates for xrdp (in builder; /etc/xrdp is copied to final stage)
+RUN openssl req -x509 -nodes -newkey rsa:2048 \
+    -keyout /etc/xrdp/key.pem \
+    -out /etc/xrdp/cert.pem -days 365 \
+    -subj "/C=US/ST=State/L=City/O=Org/CN=xrdp" && \
+    chmod 600 /etc/xrdp/key.pem
+
+# Configure xrdp
+RUN printf '[globals]\nLogLevel=DEBUG\n\n[Xorg]\nname=Xorg\nlib=libxup.so\nusername=ask\npassword=ask\nip=127.0.0.1\nport=-1\ncode=20\n\n[sesman]\nFuseMountName=/tmp/.xrdp\n' > /etc/xrdp/xrdp.ini
 
 # Create startup script (will be copied to final stage)
 RUN echo '#!/bin/bash' > /usr/local/bin/start-xrdp.sh && \
@@ -262,6 +273,9 @@ RUN mkdir -p /var/log/xrdp /var/run/xrdp && \
 
 # Fix /dev/tty0 permissions issue - ensure it's accessible or create workaround
 RUN chmod 666 /dev/tty0 2>/dev/null || true
+
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+  CMD pgrep -x xrdp > /dev/null || exit 1
 
 EXPOSE 3389
 WORKDIR /home/${USER_NAME}
