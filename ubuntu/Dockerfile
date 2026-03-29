@@ -17,7 +17,9 @@ RUN apt-get update && \
     x11-xserver-utils \
     xrdp \
     sudo \
-    locales
+    locales \
+    openssl && \
+    rm -rf /var/lib/apt/lists/*
 
 # ENV LANG=en_US.UTF-8 \
 #     LANGUAGE=en_US:en \
@@ -81,6 +83,16 @@ exec xfce4-session\n' > /etc/xrdp/reconnectwm.sh && \
 # Make sure xrdp can access the SSL certs
 RUN adduser xrdp ssl-cert || true
 
+# Generate SSL certificates for xrdp
+RUN openssl req -x509 -nodes -newkey rsa:2048 \
+    -keyout /etc/xrdp/key.pem \
+    -out /etc/xrdp/cert.pem -days 365 \
+    -subj "/C=US/ST=State/L=City/O=Org/CN=xrdp" && \
+    chmod 600 /etc/xrdp/key.pem
+
+# Configure xrdp
+RUN printf '[globals]\nLogLevel=DEBUG\n\n[Xorg]\nname=Xorg\nlib=libxup.so\nusername=ask\npassword=ask\nip=127.0.0.1\nport=-1\ncode=20\n\n[sesman]\nFuseMountName=/tmp/.xrdp\n' > /etc/xrdp/xrdp.ini
+
 # Create startup script - FIXED: run sesman in background, xrdp in foreground
 RUN printf '#!/bin/bash\n\
 set -e\n\
@@ -135,6 +147,9 @@ RUN chmod +x /usr/local/bin/collect-info.sh
 # Create required directories
 RUN mkdir -p /var/log/xrdp /var/run/xrdp/sockdir && \
     chmod 755 /var/log/xrdp /var/run/xrdp /var/run/xrdp/sockdir
+
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+  CMD pgrep -x xrdp > /dev/null || exit 1
 
 EXPOSE 3389
 
