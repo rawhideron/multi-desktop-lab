@@ -1,4 +1,4 @@
-FROM archlinux:latest
+FROM archlinux:base-20260322.0.504324
 
 ARG USER_NAME
 ARG USER_PASSWORD
@@ -19,6 +19,7 @@ RUN pacman -Syu --noconfirm && \
       gnome-terminal \
       xorg-server \
       xorg-xinit \
+      openssl \
       sudo && \
     pacman -Scc --noconfirm
 
@@ -89,7 +90,7 @@ ini_version=1
 
 [logging]
 LogFile=xrdp.log
-LogLevel=INFO
+LogLevel=DEBUG
 EnableSyslog=true
 SyslogLevel=INFO
 #EnableSyslogLevel=DEBUG
@@ -123,7 +124,16 @@ RUN mkdir -p /etc/xrdp && \
       sed -i 's/^DefaultWindowManager=.*/DefaultWindowManager=startwm.sh/' /etc/xrdp/sesman.ini 2>/dev/null || true; \
       sed -i 's/^UserWindowManager=.*/UserWindowManager=false/' /etc/xrdp/sesman.ini 2>/dev/null || true; \
       sed -i 's/^RestartWindowManager=.*/RestartWindowManager=false/' /etc/xrdp/sesman.ini 2>/dev/null || true; \
+      sed -i 's/^FuseMountName=.*/FuseMountName=\/tmp\/.xrdp/' /etc/xrdp/sesman.ini 2>/dev/null || \
+      printf '\n[Fuse]\nFuseMountName=/tmp/.xrdp\n' >> /etc/xrdp/sesman.ini; \
     fi
+
+# Generate SSL certificates for xrdp
+RUN openssl req -x509 -nodes -newkey rsa:2048 \
+    -keyout /etc/xrdp/key.pem \
+    -out /etc/xrdp/cert.pem -days 365 \
+    -subj "/C=US/ST=State/L=City/O=Org/CN=xrdp" && \
+    chmod 600 /etc/xrdp/key.pem
 
 # XRDP with gnome-session - create proper startwm.sh
 RUN cat > /etc/xrdp/startwm.sh << 'EOF'
@@ -190,6 +200,14 @@ sudo chown ${CURRENT_UID}:${CURRENT_UID} /var/run/xrdp/${CURRENT_UID} 2>/dev/nul
 # Clean up any stale pid files
 sudo rm -f /var/run/xrdp/xrdp-sesman.pid /var/run/xrdp/xrdp.pid 2>/dev/null || true
 
+# Start system DBUS if not running
+if [ ! -S /run/dbus/system_bus_socket ]; then
+    sudo mkdir -p /var/run/dbus /var/lib/dbus
+    sudo dbus-uuidgen --ensure 2>/dev/null || true
+    sudo dbus-daemon --system --fork --nopidfile 2>/dev/null || true
+    sleep 1
+fi
+
 # Start xrdp-sesman with sudo
 echo "Starting xrdp-sesman..."
 sudo /usr/sbin/xrdp-sesman &
@@ -238,6 +256,9 @@ exec sudo /usr/sbin/xrdp -nodaemon
 EOF
 
 RUN chmod +x /usr/local/bin/start-xrdp.sh
+
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+  CMD pgrep -x xrdp > /dev/null || exit 1
 
 EXPOSE 3389
 
