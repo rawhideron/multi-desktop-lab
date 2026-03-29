@@ -1,5 +1,5 @@
 # ===== BUILDER STAGE =====
-FROM kalilinux/kali-rolling:2024.4 AS builder
+FROM kalilinux/kali-rolling:latest AS builder
 ENV DEBIAN_FRONTEND=noninteractive
 
 # Build arguments (only used in builder stage)
@@ -173,7 +173,7 @@ RUN echo '#!/bin/bash' > /usr/local/bin/start-xrdp.sh && \
     chmod +x /usr/local/bin/start-xrdp.sh
 
 # ===== FINAL STAGE =====
-FROM kalilinux/kali-rolling:2024.4
+FROM kalilinux/kali-rolling:latest
 ENV DEBIAN_FRONTEND=noninteractive
 
 # Build arguments for final stage (without password)
