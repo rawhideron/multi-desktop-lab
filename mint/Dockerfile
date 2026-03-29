@@ -1,4 +1,4 @@
-FROM linuxmintd/mint20-amd64
+FROM linuxmintd/mint21.3-amd64
 
 ARG USER_NAME
 ARG USER_PASSWORD
@@ -16,7 +16,9 @@ RUN apt update && \
       dbus-x11 \
       xterm \
       lxterminal \
-      locales
+      locales \
+      openssl && \
+    rm -rf /var/lib/apt/lists/*
 
 RUN groupadd -g ${GID} ${USER_NAME} || true && \
     useradd -m -s /bin/bash -u ${UID} -g ${GID} ${USER_NAME} && \
@@ -27,6 +29,16 @@ RUN groupadd -g ${GID} ${USER_NAME} || true && \
 
 RUN mkdir -p /var/run/xrdp /run/xrdp && \
     chown xrdp:xrdp /var/run/xrdp /run/xrdp
+
+# Generate SSL certificates for xrdp
+RUN openssl req -x509 -nodes -newkey rsa:2048 \
+    -keyout /etc/xrdp/key.pem \
+    -out /etc/xrdp/cert.pem -days 365 \
+    -subj "/C=US/ST=State/L=City/O=Org/CN=xrdp" && \
+    chmod 600 /etc/xrdp/key.pem
+
+# Configure xrdp
+RUN printf '[globals]\nLogLevel=DEBUG\n\n[Xorg]\nname=Xorg\nlib=libxup.so\nusername=ask\npassword=ask\nip=127.0.0.1\nport=-1\ncode=20\n\n[sesman]\nFuseMountName=/tmp/.xrdp\n' > /etc/xrdp/xrdp.ini
 
 # Use Cinnamon session for XRDP
 # RUN sed -i.bak 's|^test -x /etc/X11/Xsession && exec /etc/X11/Xsession|cinnamon-session|g' \
@@ -52,6 +64,9 @@ RUN printf '%s\n' \
     && chmod +x /etc/xrdp/startwm.sh
 
 
+
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+  CMD pgrep -x xrdp > /dev/null || exit 1
 
 EXPOSE 3389
 
