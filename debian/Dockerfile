@@ -1,5 +1,5 @@
 # ===== BUILDER STAGE =====
-FROM debian:latest AS builder
+FROM debian:12-slim AS builder
 ENV DEBIAN_FRONTEND=noninteractive
 
 # Build arguments (only used in builder stage)
@@ -10,7 +10,7 @@ ARG GID=1001
 
 # --- Desktop & XRDP Package Installation ---
 RUN apt-get update && \
-    apt-get install -y kde-plasma-desktop xrdp sudo dbus-x11 locales xterm rxvt-unicode lxterminal xfce4 xfce4-goodies && \
+    apt-get install -y kde-plasma-desktop xrdp sudo dbus-x11 locales xterm rxvt-unicode lxterminal xfce4 xfce4-goodies openssl && \
     sed -i 's/^# *en_US.UTF-8/en_US.UTF-8/' /etc/locale.gen && \
     locale-gen en_US.UTF-8 && update-locale LANG=en_US.UTF-8 && \
     rm -rf /var/lib/apt/lists/*
@@ -182,8 +182,18 @@ RUN echo '#!/bin/bash' > /usr/local/bin/start-xrdp.sh && \
     echo 'exec /usr/sbin/xrdp -nodaemon' >> /usr/local/bin/start-xrdp.sh && \
     chmod +x /usr/local/bin/start-xrdp.sh
 
+# Generate SSL certificates for xrdp (in builder; /etc/xrdp is copied to final stage)
+RUN openssl req -x509 -nodes -newkey rsa:2048 \
+    -keyout /etc/xrdp/key.pem \
+    -out /etc/xrdp/cert.pem -days 365 \
+    -subj "/C=US/ST=State/L=City/O=Org/CN=xrdp" && \
+    chmod 600 /etc/xrdp/key.pem
+
+# Configure xrdp
+RUN printf '[globals]\nLogLevel=DEBUG\n\n[Xorg]\nname=Xorg\nlib=libxup.so\nusername=ask\npassword=ask\nip=127.0.0.1\nport=-1\ncode=20\n\n[sesman]\nFuseMountName=/tmp/.xrdp\n' > /etc/xrdp/xrdp.ini
+
 # ===== FINAL STAGE =====
-FROM debian:latest
+FROM debian:12-slim
 ENV DEBIAN_FRONTEND=noninteractive
 
 # Build arguments for final stage (without password)
@@ -274,6 +284,9 @@ RUN echo xfce4-session > ~/.xsession && chmod +x ~/.xsession
 
 # Fix /dev/tty0 permissions issue - ensure it's accessible or create workaround
 RUN chmod 666 /dev/tty0 2>/dev/null || true
+
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+  CMD pgrep -x xrdp > /dev/null || exit 1
 
 EXPOSE 3389
 WORKDIR /home/${USER_NAME}
